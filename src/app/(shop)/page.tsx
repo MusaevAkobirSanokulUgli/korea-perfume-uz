@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import ProductCard from "@/components/ProductCard";
 import { Sparkles, Truck, Shield, ArrowRight } from "lucide-react";
@@ -29,6 +29,14 @@ interface Product {
 }
 
 export default function HomePage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-[60vh]"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-accent"></div></div>}>
+      <HomeContent />
+    </Suspense>
+  );
+}
+
+function HomeContent() {
   const searchParams = useSearchParams();
   const searchQuery = searchParams.get("search") || "";
   const featured = searchParams.get("featured") === "true";
