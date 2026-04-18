@@ -14,13 +14,10 @@
     "seed": "npx tsx prisma/seed.ts"
   },
   "dependencies": {
-    "@libsql/client": "^0.17.2",
-    "@prisma/adapter-better-sqlite3": "^7.7.0",
-    "@prisma/adapter-libsql": "^7.7.0",
+    "@neondatabase/serverless": "^0.10.4",
+    "@prisma/adapter-neon": "^7.7.0",
     "@prisma/client": "^7.7.0",
-    "@types/better-sqlite3": "^7.6.13",
     "bcryptjs": "^3.0.3",
-    "better-sqlite3": "^12.9.0",
     "date-fns": "^4.1.0",
     "dotenv": "^17.4.2",
     "jose": "^6.2.2",
