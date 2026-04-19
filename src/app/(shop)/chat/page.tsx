@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/lib/store";
-import { Send } from "lucide-react";
+import { Send, Trash2 } from "lucide-react";
 
 interface Message {
   id: string;
@@ -67,7 +67,21 @@ export default function ChatPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">Admin bilan chat</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold">Admin bilan chat</h1>
+        {messages.length > 0 && (
+          <button
+            onClick={async () => {
+              if (!confirm("Barcha yozishmalarni o'chirishni xohlaysizmi?")) return;
+              await fetch("/api/messages", { method: "DELETE" });
+              setMessages([]);
+            }}
+            className="flex items-center gap-2 text-sm text-red-500 hover:text-red-700 transition px-3 py-2 rounded-lg hover:bg-red-50"
+          >
+            <Trash2 size={16} /> Tozalash
+          </button>
+        )}
+      </div>
 
       <div className="bg-white border border-border rounded-2xl overflow-hidden flex flex-col" style={{ height: "60vh" }}>
         <div className="flex-1 overflow-y-auto p-4 space-y-3">

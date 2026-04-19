@@ -100,3 +100,21 @@ export async function POST(request: Request) {
 
   return Response.json(message, { status: 201 });
 }
+
+export async function DELETE(request: Request) {
+  const session = await getSession();
+  if (!session) {
+    return Response.json({ error: "Tizimga kiring" }, { status: 401 });
+  }
+
+  const url = new URL(request.url);
+  const userId = url.searchParams.get("userId");
+
+  if (session.role === "ADMIN" && userId) {
+    await prisma.message.deleteMany({ where: { userId } });
+  } else {
+    await prisma.message.deleteMany({ where: { userId: session.id } });
+  }
+
+  return Response.json({ ok: true });
+}

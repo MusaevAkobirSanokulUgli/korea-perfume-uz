@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { Send, MessageCircle } from "lucide-react";
+import { Send, MessageCircle, Trash2 } from "lucide-react";
 
 interface Conversation {
   id: string;
@@ -130,14 +130,28 @@ export default function AdminMessages() {
         <div className="flex-1 flex flex-col min-w-0">
           {selectedUser ? (
             <>
-              <div className="p-4 border-b border-border flex items-center gap-3">
+              <div className="p-4 border-b border-border flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setSelectedUser(null)}
+                    className="md:hidden text-sm text-accent"
+                  >
+                    ← Orqaga
+                  </button>
+                  <h3 className="font-medium">{selectedUserName}</h3>
+                </div>
                 <button
-                  onClick={() => setSelectedUser(null)}
-                  className="md:hidden text-sm text-accent"
+                  onClick={async () => {
+                    if (!confirm("Barcha yozishmalarni o'chirishni xohlaysizmi?")) return;
+                    await fetch(`/api/messages?userId=${selectedUser}`, { method: "DELETE" });
+                    setMessages([]);
+                    fetchConversations();
+                  }}
+                  className="text-red-500 hover:text-red-700 transition p-2 rounded-lg hover:bg-red-50"
+                  title="Yozishmalarni tozalash"
                 >
-                  ← Orqaga
+                  <Trash2 size={16} />
                 </button>
-                <h3 className="font-medium">{selectedUserName}</h3>
               </div>
 
               <div className="flex-1 overflow-y-auto p-4 space-y-3">
