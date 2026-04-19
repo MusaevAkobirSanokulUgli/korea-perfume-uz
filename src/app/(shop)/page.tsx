@@ -48,9 +48,11 @@ function HomeContent() {
   const [loading, setLoading] = useState(true);
   const [exchangeRate, setExchangeRate] = useState<number>(0);
 
+  const safeJson = (r: Response) => (r.ok ? r.json() : Promise.resolve(null));
+
   useEffect(() => {
-    fetch("/api/categories").then((r) => r.json()).then(setCategories);
-    fetch("/api/exchange-rate").then((r) => r.json()).then((d) => setExchangeRate(d.rate));
+    fetch("/api/categories").then(safeJson).then((d) => { if (Array.isArray(d)) setCategories(d); }).catch(() => {});
+    fetch("/api/exchange-rate").then(safeJson).then((d) => { if (d?.rate) setExchangeRate(d.rate); }).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -62,18 +64,20 @@ function HomeContent() {
     params.set("limit", "40");
 
     fetch(`/api/products?${params}`)
-      .then((r) => r.json())
+      .then(safeJson)
       .then((d) => {
-        setProducts(d.products);
+        setProducts(d?.products || []);
         setLoading(false);
-      });
+      })
+      .catch(() => setLoading(false));
   }, [searchQuery, selectedCategory, featured]);
 
   useEffect(() => {
     if (!searchQuery && !featured) {
       fetch("/api/products?featured=true&limit=8")
-        .then((r) => r.json())
-        .then((d) => setFeaturedProducts(d.products));
+        .then(safeJson)
+        .then((d) => { if (d?.products) setFeaturedProducts(d.products); })
+        .catch(() => {});
     }
   }, [searchQuery, featured]);
 

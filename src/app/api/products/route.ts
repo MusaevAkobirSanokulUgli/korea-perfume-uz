@@ -5,53 +5,58 @@ import { getSession } from "@/lib/auth";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
-  const url = new URL(request.url);
-  const categoryId = url.searchParams.get("categoryId");
-  const featured = url.searchParams.get("featured");
-  const search = url.searchParams.get("search");
-  const page = parseInt(url.searchParams.get("page") || "1");
-  const limit = parseInt(url.searchParams.get("limit") || "20");
+  try {
+    const url = new URL(request.url);
+    const categoryId = url.searchParams.get("categoryId");
+    const featured = url.searchParams.get("featured");
+    const search = url.searchParams.get("search");
+    const page = parseInt(url.searchParams.get("page") || "1");
+    const limit = parseInt(url.searchParams.get("limit") || "20");
 
-  const where: Record<string, unknown> = {};
-  if (categoryId === "other") {
-    where.category = { isActive: false };
-  } else if (categoryId) {
-    where.categoryId = categoryId;
+    const where: Record<string, unknown> = {};
+    if (categoryId === "other") {
+      where.category = { isActive: false };
+    } else if (categoryId) {
+      where.categoryId = categoryId;
+    }
+    if (featured === "true") where.featured = true;
+    if (search) {
+      where.OR = [
+        { name: { contains: search } },
+        { nameUz: { contains: search } },
+        { brand: { contains: search } },
+      ];
+    }
+
+    const [products, total, rate] = await Promise.all([
+      prisma.product.findMany({
+        where,
+        include: { category: true },
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.product.count({ where }),
+      getExchangeRate(),
+    ]);
+
+    const productsWithUsd = products.map((p) => ({
+      ...p,
+      priceUSD: krwToUsd(p.priceKRW, rate),
+      images: JSON.parse(p.images),
+    }));
+
+    return Response.json({
+      products: productsWithUsd,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+      exchangeRate: rate,
+    });
+  } catch (error) {
+    console.error("Products GET error:", error);
+    return Response.json({ products: [], total: 0, page: 1, totalPages: 0 }, { status: 500 });
   }
-  if (featured === "true") where.featured = true;
-  if (search) {
-    where.OR = [
-      { name: { contains: search } },
-      { nameUz: { contains: search } },
-      { brand: { contains: search } },
-    ];
-  }
-
-  const [products, total, rate] = await Promise.all([
-    prisma.product.findMany({
-      where,
-      include: { category: true },
-      skip: (page - 1) * limit,
-      take: limit,
-      orderBy: { createdAt: "desc" },
-    }),
-    prisma.product.count({ where }),
-    getExchangeRate(),
-  ]);
-
-  const productsWithUsd = products.map((p) => ({
-    ...p,
-    priceUSD: krwToUsd(p.priceKRW, rate),
-    images: JSON.parse(p.images),
-  }));
-
-  return Response.json({
-    products: productsWithUsd,
-    total,
-    page,
-    totalPages: Math.ceil(total / limit),
-    exchangeRate: rate,
-  });
 }
 
 export async function POST(request: Request) {

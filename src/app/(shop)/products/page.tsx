@@ -32,8 +32,10 @@ export default function ProductsPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
+  const safeJson = (r: Response) => (r.ok ? r.json() : Promise.resolve(null));
+
   useEffect(() => {
-    fetch("/api/categories").then((r) => r.json()).then(setCategories);
+    fetch("/api/categories").then(safeJson).then((d) => { if (Array.isArray(d)) setCategories(d); }).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -44,12 +46,13 @@ export default function ProductsPage() {
     params.set("limit", "20");
 
     fetch(`/api/products?${params}`)
-      .then((r) => r.json())
+      .then(safeJson)
       .then((d) => {
-        setProducts(d.products);
-        setTotalPages(d.totalPages);
+        setProducts(d?.products || []);
+        setTotalPages(d?.totalPages || 1);
         setLoading(false);
-      });
+      })
+      .catch(() => setLoading(false));
   }, [selectedCategory, page]);
 
   return (
