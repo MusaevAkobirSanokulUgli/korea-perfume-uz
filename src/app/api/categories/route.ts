@@ -4,17 +4,26 @@ import { getSession } from "@/lib/auth";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
-  const url = new URL(request.url);
-  const all = url.searchParams.get("all") === "true";
+  try {
+    const url = new URL(request.url);
+    const all = url.searchParams.get("all") === "true";
 
-  const where = all ? {} : { isActive: true };
+    const where = all ? {} : { isActive: true };
 
-  const categories = await prisma.category.findMany({
-    where,
-    include: { _count: { select: { products: true } } },
-    orderBy: { name: "asc" },
-  });
-  return Response.json(categories);
+    const categories = await prisma.category.findMany({
+      where,
+      include: { _count: { select: { products: true } } },
+      orderBy: { name: "asc" },
+    });
+    return Response.json(categories);
+  } catch {
+    // Fallback: if isActive column doesn't exist yet, return all
+    const categories = await prisma.category.findMany({
+      include: { _count: { select: { products: true } } },
+      orderBy: { name: "asc" },
+    });
+    return Response.json(categories);
+  }
 }
 
 export async function POST(request: Request) {

@@ -44,11 +44,14 @@ export default function AdminProducts() {
   const [loading, setLoading] = useState(true);
   const [allCategories, setAllCategories] = useState<Category[]>([]);
 
+  const safeFetch = (url: string) =>
+    fetch(url).then((r) => (r.ok ? r.json() : [])).catch(() => []);
+
   const fetchData = () => {
     Promise.all([
-      fetch("/api/products?limit=100").then((r) => r.json()),
-      fetch("/api/categories").then((r) => r.json()),
-      fetch("/api/categories?all=true").then((r) => r.json()),
+      fetch("/api/products?limit=100").then((r) => r.ok ? r.json() : { products: [] }).catch(() => ({ products: [] })),
+      safeFetch("/api/categories"),
+      safeFetch("/api/categories?all=true"),
     ]).then(([p, c, all]) => {
       setProducts(p.products || []);
       setCategories(Array.isArray(c) ? c : []);
