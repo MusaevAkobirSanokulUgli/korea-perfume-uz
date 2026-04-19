@@ -56,3 +56,22 @@ export async function PUT(
 
   return Response.json(order);
 }
+
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await getSession();
+  if (!session || session.role !== "ADMIN") {
+    return Response.json({ error: "Ruxsat yo'q" }, { status: 403 });
+  }
+
+  const { id } = await params;
+  try {
+    await prisma.orderItem.deleteMany({ where: { orderId: id } });
+    await prisma.order.delete({ where: { id } });
+    return Response.json({ success: true });
+  } catch {
+    return Response.json({ error: "Buyurtmani o'chirishda xato" }, { status: 500 });
+  }
+}

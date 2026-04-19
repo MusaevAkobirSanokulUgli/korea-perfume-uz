@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useCartStore, useAuthStore } from "@/lib/store";
 import {
   ShoppingCart, User, LogOut, Menu, X, Search,
-  MessageCircle, LayoutDashboard,
+  MessageCircle, ShoppingBag,
 } from "lucide-react";
 
 export default function Header() {
@@ -15,26 +15,41 @@ export default function Header() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [unread, setUnread] = useState(0);
+  const [pendingOrders, setPendingOrders] = useState(0);
+
+  const isAdmin = user?.role === "ADMIN";
 
   useEffect(() => {
     fetch("/api/auth/me")
-      .then((r) => r.json())
-      .then((d) => { if (d.user) setUser(d.user); });
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => { if (d?.user) setUser(d.user); })
+      .catch(() => {});
   }, [setUser]);
 
   useEffect(() => {
     if (!user) return;
-    fetch("/api/cart")
-      .then((r) => r.json())
-      .then((d) => { if (d.count !== undefined) setCount(d.count); });
 
-    const fetchUnread = () => {
+    fetch("/api/cart")
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => { if (d?.count !== undefined) setCount(d.count); })
+      .catch(() => {});
+
+    const fetchNotifications = () => {
       fetch("/api/messages/unread")
-        .then((r) => r.json())
-        .then((d) => setUnread(d.count || 0));
+        .then((r) => r.ok ? r.json() : null)
+        .then((d) => { if (d) setUnread(d.count || 0); })
+        .catch(() => {});
+
+      if (user.role === "ADMIN") {
+        fetch("/api/orders/pending")
+          .then((r) => r.ok ? r.json() : null)
+          .then((d) => { if (d) setPendingOrders(d.count || 0); })
+          .catch(() => {});
+      }
     };
-    fetchUnread();
-    const interval = setInterval(fetchUnread, 30000);
+
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 30000);
     return () => clearInterval(interval);
   }, [user, setCount]);
 
@@ -89,7 +104,12 @@ export default function Header() {
 
             {user ? (
               <>
-                <Link href="/chat" className="p-2 hover:bg-surface rounded-lg relative">
+                {/* Chat — admin goes to admin/messages, user goes to /chat */}
+                <Link
+                  href={isAdmin ? "/admin/messages" : "/chat"}
+                  className="p-2 hover:bg-surface rounded-lg relative"
+                  onClick={() => setUnread(0)}
+                >
                   <MessageCircle size={20} />
                   {unread > 0 && (
                     <span className="absolute -top-1 -right-1 bg-accent text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
@@ -97,20 +117,34 @@ export default function Header() {
                     </span>
                   )}
                 </Link>
-                <Link href="/cart" className="p-2 hover:bg-surface rounded-lg relative">
-                  <ShoppingCart size={20} />
-                  {count > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-accent text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                      {count}
-                    </span>
-                  )}
-                </Link>
-                {user.role === "ADMIN" && (
-                  <Link href="/admin" className="p-2 hover:bg-surface rounded-lg" title="Admin panel">
-                    <LayoutDashboard size={20} />
+
+                {isAdmin ? (
+                  /* Admin: orders notification instead of cart */
+                  <Link
+                    href="/admin/orders"
+                    className="p-2 hover:bg-surface rounded-lg relative"
+                    onClick={() => setPendingOrders(0)}
+                  >
+                    <ShoppingBag size={20} />
+                    {pendingOrders > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-accent text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                        {pendingOrders}
+                      </span>
+                    )}
+                  </Link>
+                ) : (
+                  /* Regular user: cart */
+                  <Link href="/cart" className="p-2 hover:bg-surface rounded-lg relative">
+                    <ShoppingCart size={20} />
+                    {count > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-accent text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                        {count}
+                      </span>
+                    )}
                   </Link>
                 )}
-                <Link href="/profile" className="p-2 hover:bg-surface rounded-lg">
+
+                <Link href={isAdmin ? "/admin" : "/profile"} className="p-2 hover:bg-surface rounded-lg">
                   <User size={20} />
                 </Link>
                 <button onClick={handleLogout} className="p-2 hover:bg-surface rounded-lg text-muted">

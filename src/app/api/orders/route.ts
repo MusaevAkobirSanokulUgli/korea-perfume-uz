@@ -91,3 +91,15 @@ export async function POST(request: Request) {
 
   return Response.json(order, { status: 201 });
 }
+
+export async function DELETE() {
+  const session = await getSession();
+  if (!session || session.role !== "ADMIN") {
+    return Response.json({ error: "Ruxsat yo'q" }, { status: 403 });
+  }
+
+  await prisma.orderItem.deleteMany();
+  await prisma.order.deleteMany();
+
+  return Response.json({ success: true });
+}

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { formatUSD, formatKRW, formatDate, ORDER_STATUS_MAP } from "@/lib/utils";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
 
 interface OrderItem {
@@ -37,8 +37,9 @@ export default function AdminOrders() {
 
   const fetchOrders = () => {
     fetch("/api/orders?limit=100")
-      .then((r) => r.json())
-      .then((d) => { setOrders(d.orders || []); setLoading(false); });
+      .then((r) => r.ok ? r.json() : { orders: [] })
+      .then((d) => { setOrders(d.orders || []); setLoading(false); })
+      .catch(() => setLoading(false));
   };
 
   useEffect(() => { fetchOrders(); }, []);
@@ -55,6 +56,30 @@ export default function AdminOrders() {
     }
   };
 
+  const deleteOrder = async (orderId: string) => {
+    if (!confirm("Buyurtmani o'chirishni tasdiqlaysizmi?")) return;
+    const res = await fetch(`/api/orders/${orderId}`, { method: "DELETE" });
+    if (res.ok) {
+      toast.success("Buyurtma o'chirildi");
+      if (expanded === orderId) setExpanded(null);
+      fetchOrders();
+    } else {
+      toast.error("Xatolik");
+    }
+  };
+
+  const clearAll = async () => {
+    if (!confirm("BARCHA buyurtmalarni o'chirishni tasdiqlaysizmi? Bu amalni qaytarib bo'lmaydi!")) return;
+    const res = await fetch("/api/orders", { method: "DELETE" });
+    if (res.ok) {
+      toast.success("Barcha buyurtmalar o'chirildi");
+      setOrders([]);
+      setExpanded(null);
+    } else {
+      toast.error("Xatolik");
+    }
+  };
+
   if (loading) {
     return <div className="space-y-4">
       {[1, 2, 3].map((i) => <div key={i} className="h-24 bg-white rounded-xl animate-pulse" />)}
@@ -63,7 +88,17 @@ export default function AdminOrders() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">Buyurtmalar ({orders.length})</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold">Buyurtmalar ({orders.length})</h1>
+        {orders.length > 0 && (
+          <button
+            onClick={clearAll}
+            className="flex items-center gap-2 px-4 py-2 text-sm text-red-500 hover:text-red-700 hover:bg-red-50 rounded-xl transition"
+          >
+            <Trash2 size={16} /> Barchasini tozalash
+          </button>
+        )}
+      </div>
 
       {orders.length === 0 ? (
         <p className="text-center text-muted py-12">Hali buyurtma yo&apos;q</p>
@@ -75,25 +110,34 @@ export default function AdminOrders() {
 
             return (
               <div key={order.id} className="bg-white rounded-2xl border border-border overflow-hidden">
-                <button
-                  onClick={() => setExpanded(isExpanded ? null : order.id)}
-                  className="w-full p-4 flex items-center justify-between hover:bg-surface/50 transition text-left"
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 mb-1">
-                      <span className="text-sm font-bold">#{order.id.slice(-6).toUpperCase()}</span>
-                      <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${status.color}`}>
-                        {status.label}
-                      </span>
+                <div className="flex items-center">
+                  <button
+                    onClick={() => setExpanded(isExpanded ? null : order.id)}
+                    className="flex-1 p-4 flex items-center justify-between hover:bg-surface/50 transition text-left"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-3 mb-1">
+                        <span className="text-sm font-bold">#{order.id.slice(-6).toUpperCase()}</span>
+                        <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${status.color}`}>
+                          {status.label}
+                        </span>
+                      </div>
+                      <p className="text-sm">{order.user.name} • <span className="text-muted">{order.user.telegram}</span></p>
+                      <p className="text-xs text-muted">{formatDate(order.createdAt)}</p>
                     </div>
-                    <p className="text-sm">{order.user.name} • <span className="text-muted">{order.user.telegram}</span></p>
-                    <p className="text-xs text-muted">{formatDate(order.createdAt)}</p>
-                  </div>
-                  <div className="flex items-center gap-3 shrink-0">
-                    <span className="text-lg font-bold text-accent">{formatUSD(order.totalUSD)}</span>
-                    {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                  </div>
-                </button>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span className="text-lg font-bold text-accent">{formatUSD(order.totalUSD)}</span>
+                      {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => deleteOrder(order.id)}
+                    className="p-4 text-muted hover:text-red-500 transition shrink-0"
+                    title="O'chirish"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
 
                 {isExpanded && (
                   <div className="border-t border-border">
