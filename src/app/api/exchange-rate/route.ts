@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { getExchangeRate } from "@/lib/exchange-rate";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const rate = await getExchangeRate();
   const latest = await prisma.exchangeRate.findFirst({

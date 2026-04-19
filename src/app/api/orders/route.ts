@@ -2,6 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { getExchangeRate, krwToUsd } from "@/lib/exchange-rate";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request: Request) {
   const session = await getSession();
   if (!session) {

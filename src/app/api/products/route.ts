@@ -2,6 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { getExchangeRate, krwToUsd } from "@/lib/exchange-rate";
 import { getSession } from "@/lib/auth";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const categoryId = url.searchParams.get("categoryId");
