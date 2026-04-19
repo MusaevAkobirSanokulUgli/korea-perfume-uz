@@ -89,10 +89,11 @@ export default function ChatPage() {
                 {msg.isAdmin && <p className="text-xs font-medium text-accent mb-1">Admin</p>}
                 <p className="whitespace-pre-wrap">{msg.content}</p>
                 <p className={`text-[10px] mt-1 ${msg.isAdmin ? "text-muted" : "text-white/60"}`}>
-                  {new Date(msg.createdAt).toLocaleTimeString("uz-UZ", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
+                  {(() => {
+                    const d = new Date(msg.createdAt);
+                    if (isNaN(d.getTime())) return "";
+                    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+                  })()}
                 </p>
               </div>
             </div>

@@ -14,13 +14,15 @@ export function formatKRW(amount: number): string {
 }
 
 export function formatDate(date: string | Date): string {
-  return new Intl.DateTimeFormat("uz-UZ", {
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return "";
+  return new Intl.DateTimeFormat("ru-RU", {
     year: "numeric",
     month: "long",
     day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-  }).format(new Date(date));
+  }).format(d);
 }
 
 export function cn(...classes: (string | boolean | undefined | null)[]): string {
