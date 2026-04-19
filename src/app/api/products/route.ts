@@ -13,7 +13,11 @@ export async function GET(request: Request) {
   const limit = parseInt(url.searchParams.get("limit") || "20");
 
   const where: Record<string, unknown> = {};
-  if (categoryId) where.categoryId = categoryId;
+  if (categoryId === "other") {
+    where.category = { isActive: false };
+  } else if (categoryId) {
+    where.categoryId = categoryId;
+  }
   if (featured === "true") where.featured = true;
   if (search) {
     where.OR = [

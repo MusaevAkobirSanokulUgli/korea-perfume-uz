@@ -26,12 +26,13 @@ model User {
 }
 
 model Category {
-  id       String    @id @default(cuid())
-  name     String
-  nameUz   String
-  image    String    @default("")
-  products Product[]
-  createdAt DateTime @default(now())
+  id        String    @id @default(cuid())
+  name      String
+  nameUz    String
+  image     String    @default("")
+  isActive  Boolean   @default(true)
+  products  Product[]
+  createdAt DateTime  @default(now())
 }
 
 model Product {

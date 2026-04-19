@@ -76,6 +76,14 @@ export default function ProductsPage() {
             {cat.nameUz || cat.name} ({cat._count.products})
           </button>
         ))}
+        <button
+          onClick={() => { setSelectedCategory("other"); setPage(1); }}
+          className={`px-5 py-2.5 rounded-full text-sm font-medium whitespace-nowrap transition border ${
+            selectedCategory === "other" ? "bg-primary text-white border-primary" : "bg-white text-foreground border-border hover:border-primary"
+          }`}
+        >
+          Boshqalar
+        </button>
       </div>
 
       {loading ? (

@@ -160,6 +160,16 @@ function HomeContent() {
                     <span className="ml-1.5 text-xs opacity-60">({cat._count.products})</span>
                   </button>
                 ))}
+                <button
+                  onClick={() => setSelectedCategory(selectedCategory === "other" ? "" : "other")}
+                  className={`px-5 py-2.5 rounded-full text-sm font-medium whitespace-nowrap transition border ${
+                    selectedCategory === "other"
+                      ? "bg-primary text-white border-primary"
+                      : "bg-white text-foreground border-border hover:border-primary"
+                  }`}
+                >
+                  Boshqalar
+                </button>
               </div>
             </section>
           )}
@@ -191,7 +201,9 @@ function HomeContent() {
               {searchQuery ? `"${searchQuery}" bo'yicha natijalar` : ""}
               {featured ? "Mashhur mahsulotlar" : ""}
               {selectedCategory && !searchQuery && !featured
-                ? categories.find((c) => c.id === selectedCategory)?.nameUz || "Kategoriya"
+                ? selectedCategory === "other"
+                  ? "Boshqalar"
+                  : categories.find((c) => c.id === selectedCategory)?.nameUz || "Kategoriya"
                 : ""}
             </h2>
             {exchangeRate > 0 && (
@@ -225,6 +237,16 @@ function HomeContent() {
                 {cat.nameUz || cat.name}
               </button>
             ))}
+            <button
+              onClick={() => setSelectedCategory(selectedCategory === "other" ? "" : "other")}
+              className={`px-5 py-2.5 rounded-full text-sm font-medium whitespace-nowrap transition border ${
+                selectedCategory === "other"
+                  ? "bg-primary text-white border-primary"
+                  : "bg-white text-foreground border-border hover:border-primary"
+              }`}
+            >
+              Boshqalar
+            </button>
           </div>
         )}
 

@@ -9,6 +9,7 @@ interface Category {
   id: string;
   name: string;
   nameUz: string;
+  isActive?: boolean;
 }
 
 interface Product {
@@ -41,16 +42,17 @@ export default function AdminProducts() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [loading, setLoading] = useState(true);
-  const [showCategoryForm, setShowCategoryForm] = useState(false);
-  const [newCategory, setNewCategory] = useState({ name: "", nameUz: "" });
+  const [allCategories, setAllCategories] = useState<Category[]>([]);
 
   const fetchData = () => {
     Promise.all([
       fetch("/api/products?limit=100").then((r) => r.json()),
       fetch("/api/categories").then((r) => r.json()),
-    ]).then(([p, c]) => {
+      fetch("/api/categories?all=true").then((r) => r.json()),
+    ]).then(([p, c, all]) => {
       setProducts(p.products || []);
-      setCategories(c);
+      setCategories(Array.isArray(c) ? c : []);
+      setAllCategories(Array.isArray(all) ? all : []);
       setLoading(false);
     });
   };
@@ -106,21 +108,6 @@ export default function AdminProducts() {
     }
   };
 
-  const addCategory = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const res = await fetch("/api/categories", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newCategory),
-    });
-    if (res.ok) {
-      toast.success("Kategoriya qo'shildi");
-      setNewCategory({ name: "", nameUz: "" });
-      setShowCategoryForm(false);
-      fetchData();
-    }
-  };
-
   if (loading) {
     return <div className="animate-pulse space-y-4">
       {[1, 2, 3].map((i) => <div key={i} className="h-20 bg-white rounded-xl" />)}
@@ -131,43 +118,13 @@ export default function AdminProducts() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Mahsulotlar ({products.length})</h1>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setShowCategoryForm(!showCategoryForm)}
-            className="px-4 py-2 bg-white border border-border rounded-xl text-sm font-medium hover:bg-surface transition"
-          >
-            + Kategoriya
-          </button>
-          <button
-            onClick={() => { setShowForm(true); setEditingId(null); setForm(emptyForm); }}
-            className="px-4 py-2 bg-accent text-white rounded-xl text-sm font-medium hover:bg-accent-light transition flex items-center gap-2"
-          >
-            <Plus size={16} /> Mahsulot qo&apos;shish
-          </button>
-        </div>
+        <button
+          onClick={() => { setShowForm(true); setEditingId(null); setForm(emptyForm); }}
+          className="px-4 py-2 bg-accent text-white rounded-xl text-sm font-medium hover:bg-accent-light transition flex items-center gap-2"
+        >
+          <Plus size={16} /> Mahsulot qo&apos;shish
+        </button>
       </div>
-
-      {showCategoryForm && (
-        <form onSubmit={addCategory} className="bg-white rounded-2xl border border-border p-4 mb-4 flex gap-3 items-end">
-          <div className="flex-1">
-            <label className="text-xs font-medium">Nomi (EN)</label>
-            <input
-              required value={newCategory.name}
-              onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
-              className="w-full px-3 py-2 border border-border rounded-lg text-sm"
-            />
-          </div>
-          <div className="flex-1">
-            <label className="text-xs font-medium">Nomi (UZ)</label>
-            <input
-              required value={newCategory.nameUz}
-              onChange={(e) => setNewCategory({ ...newCategory, nameUz: e.target.value })}
-              className="w-full px-3 py-2 border border-border rounded-lg text-sm"
-            />
-          </div>
-          <button type="submit" className="px-4 py-2 bg-primary text-white rounded-lg text-sm">Qo&apos;shish</button>
-        </form>
-      )}
 
       {showForm && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
@@ -218,8 +175,10 @@ export default function AdminProducts() {
                   <select required value={form.categoryId} onChange={(e) => update("categoryId", e.target.value)}
                     className="w-full px-3 py-2.5 border border-border rounded-xl text-sm bg-white">
                     <option value="">Tanlang...</option>
-                    {categories.map((c) => (
-                      <option key={c.id} value={c.id}>{c.nameUz || c.name}</option>
+                    {(editingId ? allCategories : categories).map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.nameUz || c.name}{c.isActive === false ? " (o'chirilgan)" : ""}
+                      </option>
                     ))}
                   </select>
                 </div>
