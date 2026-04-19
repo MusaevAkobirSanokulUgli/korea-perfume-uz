@@ -32,8 +32,11 @@ export default function AdminMessages() {
 
   const fetchConversations = () => {
     fetch("/api/messages")
-      .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
-      .then(setConversations)
+      .then((r) => {
+        if (!r.ok) throw new Error(`Status ${r.status}`);
+        return r.json();
+      })
+      .then((data) => setConversations(Array.isArray(data) ? data : []))
       .catch(() => {});
   };
 
