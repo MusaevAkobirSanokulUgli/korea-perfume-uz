@@ -31,11 +31,17 @@ export default function AdminMessages() {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const fetchConversations = () => {
-    fetch("/api/messages").then((r) => r.json()).then(setConversations);
+    fetch("/api/messages")
+      .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
+      .then(setConversations)
+      .catch(() => {});
   };
 
   const fetchMessages = (userId: string) => {
-    fetch(`/api/messages?userId=${userId}`).then((r) => r.json()).then(setMessages);
+    fetch(`/api/messages?userId=${userId}`)
+      .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
+      .then(setMessages)
+      .catch(() => {});
   };
 
   useEffect(() => {

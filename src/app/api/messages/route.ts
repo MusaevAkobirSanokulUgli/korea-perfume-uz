@@ -24,15 +24,42 @@ export async function GET(request: Request) {
       return Response.json(messages);
     }
 
-    const conversations = await prisma.$queryRawUnsafe(`
-      SELECT u.id, u.name, u.email, u.telegram,
-        (SELECT content FROM Message WHERE userId = u.id ORDER BY createdAt DESC LIMIT 1) as lastMessage,
-        (SELECT createdAt FROM Message WHERE userId = u.id ORDER BY createdAt DESC LIMIT 1) as lastMessageAt,
-        (SELECT COUNT(*) FROM Message WHERE userId = u.id AND isAdmin = 0 AND read = 0) as unreadCount
-      FROM User u
-      WHERE EXISTS (SELECT 1 FROM Message WHERE userId = u.id)
-      ORDER BY lastMessageAt DESC
-    `);
+    const usersWithMessages = await prisma.user.findMany({
+      where: { messages: { some: {} } },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        telegram: true,
+        messages: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          select: { content: true, createdAt: true },
+        },
+        _count: {
+          select: {
+            messages: { where: { isAdmin: false, read: false } },
+          },
+        },
+      },
+    });
+
+    const conversations = usersWithMessages
+      .map((u) => ({
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        telegram: u.telegram,
+        lastMessage: u.messages[0]?.content || "",
+        lastMessageAt: u.messages[0]?.createdAt || null,
+        unreadCount: u._count.messages,
+      }))
+      .sort((a, b) => {
+        if (!a.lastMessageAt) return 1;
+        if (!b.lastMessageAt) return -1;
+        return new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime();
+      });
+
     return Response.json(conversations);
   }
 
