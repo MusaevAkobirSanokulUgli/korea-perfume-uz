@@ -2,29 +2,33 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useCartStore, useAuthStore } from "@/lib/store";
+import { useCartStore, useAuthStore, useLikeStore } from "@/lib/store";
 import {
   ShoppingCart, User, LogOut, Menu, X, Search,
-  MessageCircle, ShoppingBag,
+  MessageCircle, ShoppingBag, Bell,
 } from "lucide-react";
 
 export default function Header() {
   const { count, setCount } = useCartStore();
-  const { user, setUser, logout } = useAuthStore();
+  const { user, setUser, setChecked, logout } = useAuthStore();
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [unread, setUnread] = useState(0);
   const [pendingOrders, setPendingOrders] = useState(0);
+  const [unreadNotifs, setUnreadNotifs] = useState(0);
 
   const isAdmin = user?.role === "ADMIN";
 
   useEffect(() => {
     fetch("/api/auth/me")
       .then((r) => r.ok ? r.json() : null)
-      .then((d) => { if (d?.user) setUser(d.user); })
-      .catch(() => {});
-  }, [setUser]);
+      .then((d) => {
+        if (d?.user) setUser(d.user);
+        else setChecked();
+      })
+      .catch(() => setChecked());
+  }, [setUser, setChecked]);
 
   useEffect(() => {
     if (!user) return;
@@ -32,6 +36,11 @@ export default function Header() {
     fetch("/api/cart")
       .then((r) => r.ok ? r.json() : null)
       .then((d) => { if (d?.count !== undefined) setCount(d.count); })
+      .catch(() => {});
+
+    fetch("/api/likes")
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => { if (d?.likedIds) useLikeStore.getState().setLikedIds(d.likedIds); })
       .catch(() => {});
 
     const fetchNotifications = () => {
@@ -44,6 +53,11 @@ export default function Header() {
         fetch("/api/orders/pending")
           .then((r) => r.ok ? r.json() : null)
           .then((d) => { if (d) setPendingOrders(d.count || 0); })
+          .catch(() => {});
+      } else {
+        fetch("/api/notifications")
+          .then((r) => r.ok ? r.json() : null)
+          .then((d) => { if (d) setUnreadNotifs(d.unreadCount || 0); })
           .catch(() => {});
       }
     };
@@ -144,6 +158,20 @@ export default function Header() {
                   </Link>
                 )}
 
+                {!isAdmin && (
+                  <Link
+                    href="/profile?tab=notifications"
+                    className="p-2 hover:bg-surface rounded-lg relative"
+                    onClick={() => setUnreadNotifs(0)}
+                  >
+                    <Bell size={20} />
+                    {unreadNotifs > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-accent text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                        {unreadNotifs}
+                      </span>
+                    )}
+                  </Link>
+                )}
                 <Link href={isAdmin ? "/admin" : "/profile"} className="p-2 hover:bg-surface rounded-lg">
                   <User size={20} />
                 </Link>

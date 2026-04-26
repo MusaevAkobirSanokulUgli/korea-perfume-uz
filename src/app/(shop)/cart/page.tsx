@@ -25,7 +25,7 @@ interface CartItem {
 
 export default function CartPage() {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { user, checked } = useAuthStore();
   const { setCount } = useCartStore();
   const [items, setItems] = useState<CartItem[]>([]);
   const [totalUSD, setTotalUSD] = useState(0);
@@ -49,12 +49,13 @@ export default function CartPage() {
   };
 
   useEffect(() => {
+    if (!checked) return;
     if (!user) {
       router.push("/auth/login");
       return;
     }
     fetchCart();
-  }, [user]);
+  }, [user, checked]);
 
   const updateQuantity = async (cartItemId: string, quantity: number) => {
     await fetch("/api/cart", {

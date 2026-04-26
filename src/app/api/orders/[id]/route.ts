@@ -37,6 +37,14 @@ export async function GET(
   return Response.json(order);
 }
 
+const STATUS_LABELS: Record<string, string> = {
+  PENDING: "Kutilmoqda",
+  PROCESSING: "Jarayonda",
+  SHIPPED: "Yuborildi",
+  DELIVERED: "Yetkazildi",
+  CANCELLED: "Bekor qilindi",
+};
+
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -49,10 +57,27 @@ export async function PUT(
   const { id } = await params;
   const { status } = await request.json();
 
+  const existing = await prisma.order.findUnique({ where: { id } });
+  if (!existing) {
+    return Response.json({ error: "Buyurtma topilmadi" }, { status: 404 });
+  }
+
   const order = await prisma.order.update({
     where: { id },
     data: { status },
   });
+
+  if (existing.status !== status) {
+    const label = STATUS_LABELS[status] || status;
+    await prisma.notification.create({
+      data: {
+        userId: order.userId,
+        orderId: order.id,
+        title: "Buyurtma statusi yangilandi",
+        message: `#${order.id.slice(-6).toUpperCase()} buyurtmangiz statusi "${label}" ga o'zgartirildi`,
+      },
+    });
+  }
 
   return Response.json(order);
 }

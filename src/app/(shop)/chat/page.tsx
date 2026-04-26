@@ -14,7 +14,7 @@ interface Message {
 
 export default function ChatPage() {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { user, checked } = useAuthStore();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -29,6 +29,7 @@ export default function ChatPage() {
   };
 
   useEffect(() => {
+    if (!checked) return;
     if (!user) {
       router.push("/auth/login");
       return;
@@ -36,7 +37,7 @@ export default function ChatPage() {
     fetchMessages();
     const interval = setInterval(fetchMessages, 5000);
     return () => clearInterval(interval);
-  }, [user]);
+  }, [user, checked]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });

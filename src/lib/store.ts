@@ -21,12 +21,33 @@ interface AuthState {
     name: string;
     role: string;
   } | null;
+  checked: boolean;
   setUser: (user: AuthState["user"]) => void;
+  setChecked: () => void;
   logout: () => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
-  setUser: (user) => set({ user }),
+  checked: false,
+  setUser: (user) => set({ user, checked: true }),
+  setChecked: () => set({ checked: true }),
   logout: () => set({ user: null }),
+}));
+
+interface LikeState {
+  likedIds: string[];
+  setLikedIds: (ids: string[]) => void;
+  toggleLike: (id: string) => void;
+}
+
+export const useLikeStore = create<LikeState>((set) => ({
+  likedIds: [],
+  setLikedIds: (ids) => set({ likedIds: ids }),
+  toggleLike: (id) =>
+    set((s) => ({
+      likedIds: s.likedIds.includes(id)
+        ? s.likedIds.filter((i) => i !== id)
+        : [...s.likedIds, id],
+    })),
 }));

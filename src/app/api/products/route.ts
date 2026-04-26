@@ -22,9 +22,9 @@ export async function GET(request: Request) {
     if (featured === "true") where.featured = true;
     if (search) {
       where.OR = [
-        { name: { contains: search } },
-        { nameUz: { contains: search } },
-        { brand: { contains: search } },
+        { name: { contains: search, mode: "insensitive" } },
+        { nameUz: { contains: search, mode: "insensitive" } },
+        { brand: { contains: search, mode: "insensitive" } },
       ];
     }
 

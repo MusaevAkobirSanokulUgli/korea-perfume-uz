@@ -34,7 +34,7 @@ export async function GET() {
 
   const totalRevenue = await prisma.order.aggregate({
     _sum: { totalUSD: true },
-    where: { status: { not: "CANCELLED" } },
+    where: { status: "DELIVERED" },
   });
 
   return Response.json({

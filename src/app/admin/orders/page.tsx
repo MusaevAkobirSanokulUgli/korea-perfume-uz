@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { formatUSD, formatKRW, formatDate, ORDER_STATUS_MAP } from "@/lib/utils";
-import { ChevronDown, ChevronUp, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Trash2, Download, Filter, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import toast from "react-hot-toast";
 
 interface OrderItem {
@@ -30,19 +30,61 @@ interface Order {
 
 const STATUSES = ["PENDING", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"];
 
+const STATUS_TABS = [
+  { key: "ALL", label: "Barchasi" },
+  { key: "PENDING", label: "Kutilmoqda" },
+  { key: "PROCESSING", label: "Jarayonda" },
+  { key: "SHIPPED", label: "Yuborildi" },
+  { key: "DELIVERED", label: "Yetkazildi" },
+  { key: "CANCELLED", label: "Bekor qilingan" },
+];
+
+const PER_PAGE = 10;
+
 export default function AdminOrders() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeFilter, setActiveFilter] = useState("ALL");
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
 
-  const fetchOrders = () => {
-    fetch("/api/orders?limit=100")
+  const fetchOrders = (status?: string) => {
+    const filter = status ?? activeFilter;
+    const query = filter !== "ALL" ? `&status=${filter}` : "";
+    fetch(`/api/orders?limit=500${query}`)
       .then((r) => r.ok ? r.json() : { orders: [] })
       .then((d) => { setOrders(d.orders || []); setLoading(false); })
       .catch(() => setLoading(false));
   };
 
-  useEffect(() => { fetchOrders(); }, []);
+  useEffect(() => { fetchOrders(); }, [activeFilter]);
+
+  const handleFilterChange = (status: string) => {
+    setActiveFilter(status);
+    setExpanded(null);
+    setLoading(true);
+    setPage(1);
+  };
+
+  // Client-side search
+  const filtered = useMemo(() => {
+    if (!search) return orders;
+    const q = search.toLowerCase();
+    return orders.filter((o) =>
+      o.user.name.toLowerCase().includes(q) ||
+      o.user.telegram.toLowerCase().includes(q) ||
+      o.user.phone.toLowerCase().includes(q) ||
+      o.user.email.toLowerCase().includes(q) ||
+      o.id.toLowerCase().includes(q) ||
+      o.items.some((item) => item.product.name.toLowerCase().includes(q))
+    );
+  }, [orders, search]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
+  const paginated = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+
+  useEffect(() => { setPage(1); }, [search]);
 
   const updateStatus = async (orderId: string, status: string) => {
     const res = await fetch(`/api/orders/${orderId}`, {
@@ -80,6 +122,17 @@ export default function AdminOrders() {
     }
   };
 
+  const downloadCSV = () => {
+    const query = activeFilter !== "ALL" ? `?status=${activeFilter}` : "";
+    const link = document.createElement("a");
+    link.href = `/api/orders/export${query}`;
+    link.download = "";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success("CSV yuklab olinmoqda...");
+  };
+
   if (loading) {
     return <div className="space-y-4">
       {[1, 2, 3].map((i) => <div key={i} className="h-24 bg-white rounded-xl animate-pulse" />)}
@@ -88,23 +141,81 @@ export default function AdminOrders() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Buyurtmalar ({orders.length})</h1>
-        {orders.length > 0 && (
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <h1 className="text-2xl font-bold">Buyurtmalar ({filtered.length})</h1>
+        <div className="flex items-center gap-2">
           <button
-            onClick={clearAll}
-            className="flex items-center gap-2 px-4 py-2 text-sm text-red-500 hover:text-red-700 hover:bg-red-50 rounded-xl transition"
+            onClick={downloadCSV}
+            className="flex items-center gap-2 px-4 py-2 text-sm bg-primary text-white rounded-xl hover:bg-primary-light transition font-medium"
           >
-            <Trash2 size={16} /> Barchasini tozalash
+            <Download size={16} /> CSV yuklash
           </button>
-        )}
+          {orders.length > 0 && (
+            <button
+              onClick={clearAll}
+              className="flex items-center gap-2 px-4 py-2 text-sm text-red-500 hover:text-red-700 hover:bg-red-50 rounded-xl transition"
+            >
+              <Trash2 size={16} /> Tozalash
+            </button>
+          )}
+        </div>
       </div>
 
-      {orders.length === 0 ? (
-        <p className="text-center text-muted py-12">Hali buyurtma yo&apos;q</p>
+      {/* Search */}
+      <div className="relative mb-4">
+        <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Mijoz ismi, telegram, telefon yoki buyurtma ID bo'yicha qidirish..."
+          className="w-full pl-11 pr-4 py-2.5 border border-border rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition"
+        />
+      </div>
+
+      {/* Status filter tabs */}
+      <div className="mb-6">
+        <div className="flex items-center gap-2 mb-3">
+          <Filter size={14} className="text-muted" />
+          <span className="text-xs font-medium text-muted uppercase">Status bo&apos;yicha</span>
+        </div>
+        <div className="flex gap-2 flex-wrap">
+          {STATUS_TABS.map((tab) => {
+            const isActive = activeFilter === tab.key;
+            const tabColor = tab.key !== "ALL" ? ORDER_STATUS_MAP[tab.key] : null;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => handleFilterChange(tab.key)}
+                className={`text-xs px-4 py-2 rounded-full font-medium transition ${
+                  isActive
+                    ? tabColor
+                      ? `${tabColor.color} ring-2 ring-offset-1 ring-gray-300`
+                      : "bg-primary text-white ring-2 ring-offset-1 ring-gray-300"
+                    : "bg-surface text-muted hover:bg-surface-dark"
+                }`}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {filtered.length === 0 ? (
+        <div className="text-center py-12 bg-white rounded-2xl border border-border">
+          <p className="text-muted">
+            {search
+              ? "Qidiruv bo'yicha natija topilmadi"
+              : activeFilter !== "ALL"
+                ? `"${ORDER_STATUS_MAP[activeFilter]?.label || activeFilter}" statusidagi buyurtma yo'q`
+                : "Hali buyurtma yo'q"}
+          </p>
+        </div>
       ) : (
         <div className="space-y-4">
-          {orders.map((order) => {
+          {paginated.map((order) => {
             const isExpanded = expanded === order.id;
             const status = ORDER_STATUS_MAP[order.status] || ORDER_STATUS_MAP.PENDING;
 
@@ -122,7 +233,7 @@ export default function AdminOrders() {
                           {status.label}
                         </span>
                       </div>
-                      <p className="text-sm">{order.user.name} • <span className="text-muted">{order.user.telegram}</span></p>
+                      <p className="text-sm">{order.user.name} &bull; <span className="text-muted">{order.user.telegram}</span></p>
                       <p className="text-xs text-muted">{formatDate(order.createdAt)}</p>
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
@@ -243,6 +354,53 @@ export default function AdminOrders() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between mt-4">
+          <p className="text-xs text-muted">
+            {(page - 1) * PER_PAGE + 1}–{Math.min(page * PER_PAGE, filtered.length)} / {filtered.length}
+          </p>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="p-2 rounded-lg hover:bg-surface disabled:opacity-30 disabled:cursor-not-allowed transition"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter((p) => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
+              .reduce<(number | string)[]>((acc, p, idx, arr) => {
+                if (idx > 0 && p - (arr[idx - 1] as number) > 1) acc.push("...");
+                acc.push(p);
+                return acc;
+              }, [])
+              .map((p, i) =>
+                p === "..." ? (
+                  <span key={`dot-${i}`} className="px-2 text-muted text-sm">...</span>
+                ) : (
+                  <button
+                    key={p}
+                    onClick={() => setPage(p as number)}
+                    className={`w-9 h-9 rounded-lg text-sm font-medium transition ${
+                      page === p ? "bg-primary text-white" : "hover:bg-surface"
+                    }`}
+                  >
+                    {p}
+                  </button>
+                )
+              )}
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="p-2 rounded-lg hover:bg-surface disabled:opacity-30 disabled:cursor-not-allowed transition"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
         </div>
       )}
     </div>

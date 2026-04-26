@@ -6,11 +6,13 @@ import { useEffect, useState } from "react";
 import { useAuthStore } from "@/lib/store";
 import {
   LayoutDashboard, Package, ShoppingBag, Users,
-  MessageCircle, ArrowLeft, Menu, X, Tag,
+  MessageCircle, ArrowLeft, Menu, X, Tag, BarChart3, DollarSign,
 } from "lucide-react";
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/admin/revenue", label: "Daromad", icon: DollarSign },
+  { href: "/admin/analytics", label: "Tahlil", icon: BarChart3 },
   { href: "/admin/categories", label: "Kategoriyalar", icon: Tag },
   { href: "/admin/products", label: "Mahsulotlar", icon: Package },
   { href: "/admin/orders", label: "Buyurtmalar", icon: ShoppingBag },

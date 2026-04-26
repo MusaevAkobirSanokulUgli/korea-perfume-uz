@@ -13,8 +13,12 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const page = parseInt(url.searchParams.get("page") || "1");
   const limit = parseInt(url.searchParams.get("limit") || "20");
+  const statusFilter = url.searchParams.get("status");
 
-  const where = session.role === "ADMIN" ? {} : { userId: session.id };
+  const where: Record<string, unknown> = session.role === "ADMIN" ? {} : { userId: session.id };
+  if (statusFilter && statusFilter !== "ALL") {
+    where.status = statusFilter;
+  }
 
   const [orders, total] = await Promise.all([
     prisma.order.findMany({
