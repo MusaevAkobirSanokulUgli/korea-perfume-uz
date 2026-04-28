@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { getExchangeRate, krwToUsd } from "@/lib/exchange-rate";
+import { getRates, krwToUsd, krwToUzs } from "@/lib/exchange-rate";
 import { getSession } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
@@ -28,7 +28,7 @@ export async function GET(request: Request) {
       ];
     }
 
-    const [products, total, rate] = await Promise.all([
+    const [products, total, rates] = await Promise.all([
       prisma.product.findMany({
         where,
         include: { category: true },
@@ -37,21 +37,23 @@ export async function GET(request: Request) {
         orderBy: { createdAt: "desc" },
       }),
       prisma.product.count({ where }),
-      getExchangeRate(),
+      getRates(),
     ]);
 
-    const productsWithUsd = products.map((p) => ({
+    const productsWithPrices = products.map((p) => ({
       ...p,
-      priceUSD: krwToUsd(p.priceKRW, rate),
+      priceUSD: krwToUsd(p.priceKRW, rates.usdKrw),
+      priceUZS: krwToUzs(p.priceKRW, rates.uzsKrw),
       images: JSON.parse(p.images),
     }));
 
     return Response.json({
-      products: productsWithUsd,
+      products: productsWithPrices,
       total,
       page,
       totalPages: Math.ceil(total / limit),
-      exchangeRate: rate,
+      exchangeRate: rates.usdKrw,
+      rates,
     });
   } catch (error) {
     console.error("Products GET error:", error);

@@ -3,9 +3,11 @@
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import ProductCard from "@/components/ProductCard";
-import { Sparkles, Truck, Shield, ArrowRight, DollarSign, ChevronLeft, ChevronRight, Flame } from "lucide-react";
+import { Sparkles, Truck, Shield, ArrowRight, ChevronLeft, ChevronRight, Flame } from "lucide-react";
 import Link from "next/link";
 import { useAuthStore } from "@/lib/store";
+import { useCurrency } from "@/lib/useCurrency";
+import AdminRateBadge from "@/components/AdminRateBadge";
 
 interface Category {
   id: string;
@@ -20,7 +22,8 @@ interface Product {
   name: string;
   nameUz: string;
   priceKRW: number;
-  priceUSD: number;
+  priceUSD?: number;
+  priceUZS?: number;
   image: string;
   images?: string[];
   brand: string;
@@ -43,6 +46,8 @@ function HomeContent() {
   const searchQuery = searchParams.get("search") || "";
   const featured = searchParams.get("featured") === "true";
   const { user } = useAuthStore();
+  useCurrency();
+  const isAdmin = user?.role === "ADMIN";
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -50,7 +55,6 @@ function HomeContent() {
   const [bestSellers, setBestSellers] = useState<Product[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [loading, setLoading] = useState(true);
-  const [exchangeRate, setExchangeRate] = useState<number>(0);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
@@ -60,7 +64,6 @@ function HomeContent() {
 
   useEffect(() => {
     fetch("/api/categories").then(safeJson).then((d) => { if (Array.isArray(d)) setCategories(d); }).catch(() => {});
-    fetch("/api/exchange-rate").then(safeJson).then((d) => { if (d?.rate) setExchangeRate(d.rate); }).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -144,21 +147,16 @@ function HomeContent() {
                   >
                     Xarid qilish <ArrowRight size={18} />
                   </Link>
-                  {user ? (
-                    exchangeRate > 0 && (
-                      <div className="px-6 py-3.5 bg-white/10 backdrop-blur-sm text-white border border-white/20 rounded-xl font-medium flex items-center gap-2.5">
-                        <DollarSign size={18} className="text-gold-light" />
-                        <span>1 USD = <strong className="text-gold-light">{Math.round(exchangeRate).toLocaleString()}</strong> KRW</span>
-                      </div>
-                    )
-                  ) : (
+                  {isAdmin ? (
+                    <AdminRateBadge variant="hero" />
+                  ) : !user ? (
                     <Link
                       href="/auth/register"
                       className="px-8 py-3.5 bg-white/10 text-white border border-white/20 rounded-xl font-medium hover:bg-white/20 transition"
                     >
                       Ro&apos;yxatdan o&apos;tish
                     </Link>
-                  )}
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -293,11 +291,9 @@ function HomeContent() {
                   : categories.find((c) => c.id === selectedCategory)?.nameUz || "Kategoriya"
                 : ""}
             </h2>
-            {exchangeRate > 0 && (
-              <p className="text-sm text-muted mt-1">
-                Kurs: 1 USD = {Math.round(exchangeRate).toLocaleString()} KRW
-              </p>
-            )}
+            <div className="mt-2">
+              <AdminRateBadge />
+            </div>
           </div>
         )}
 

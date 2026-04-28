@@ -46,7 +46,9 @@ export async function GET(request: Request) {
   const headers = [
     "Buyurtma ID", "Sana", "Status", "Mijoz ismi", "Telefon", "Telegram",
     "Email", "Shahar", "Tuman", "Manzil", "Mahsulotlar", "Soni",
-    "Jami (USD)", "Jami (KRW)", "Kurs", "Izoh",
+    "Mijoz valyutasi", "Jami (mijoz valyutasida)",
+    "Jami (USD)", "Jami (KRW)", "Jami (UZS)",
+    "USD/KRW kurs", "KRW/UZS kurs", "Izoh",
   ];
 
   const rows = orders.map((order) => {
@@ -54,6 +56,11 @@ export async function GET(request: Request) {
       .map((item) => `${item.product.name} x${item.quantity}`)
       .join("; ");
     const totalQty = order.items.reduce((sum, item) => sum + item.quantity, 0);
+    const cur = order.currency || "USD";
+    const totalInCustomerCurrency =
+      cur === "KRW" ? Math.round(order.totalKRW).toString()
+      : cur === "UZS" ? Math.round(order.totalUZS || 0).toString()
+      : order.totalUSD.toFixed(2);
 
     return [
       order.id.slice(-6).toUpperCase(),
@@ -68,9 +75,13 @@ export async function GET(request: Request) {
       order.user.address,
       products,
       totalQty.toString(),
+      cur,
+      totalInCustomerCurrency,
       order.totalUSD.toFixed(2),
       Math.round(order.totalKRW).toString(),
+      Math.round(order.totalUZS || 0).toString(),
       Math.round(order.exchangeRate).toString(),
+      (order.uzsKrwRate || 0).toFixed(4),
       order.note || "",
     ].map(escapeCsv).join(",");
   });

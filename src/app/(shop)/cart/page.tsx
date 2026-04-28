@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Trash2, Minus, Plus, ShoppingBag, ArrowLeft } from "lucide-react";
-import { formatUSD, formatKRW } from "@/lib/utils";
 import { useCartStore, useAuthStore } from "@/lib/store";
+import { useCurrency } from "@/lib/useCurrency";
+import AdminRateBadge from "@/components/AdminRateBadge";
 import toast from "react-hot-toast";
 import Link from "next/link";
 
@@ -16,7 +17,8 @@ interface CartItem {
     name: string;
     nameUz: string;
     priceKRW: number;
-    priceUSD: number;
+    priceUSD?: number;
+    priceUZS?: number;
     image: string;
     brand: string;
     volume: string;
@@ -27,10 +29,9 @@ export default function CartPage() {
   const router = useRouter();
   const { user, checked } = useAuthStore();
   const { setCount } = useCartStore();
+  const { format, currency } = useCurrency();
   const [items, setItems] = useState<CartItem[]>([]);
-  const [totalUSD, setTotalUSD] = useState(0);
   const [totalKRW, setTotalKRW] = useState(0);
-  const [exchangeRate, setExchangeRate] = useState(0);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [note, setNote] = useState("");
@@ -40,9 +41,7 @@ export default function CartPage() {
     const data = await res.json();
     if (data.items) {
       setItems(data.items);
-      setTotalUSD(data.totalUSD);
       setTotalKRW(data.totalKRW);
-      setExchangeRate(data.exchangeRate);
       setCount(data.count);
     }
     setLoading(false);
@@ -82,7 +81,7 @@ export default function CartPage() {
       const res = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ note }),
+        body: JSON.stringify({ note, currency }),
       });
       if (res.ok) {
         toast.success("Buyurtma yuborildi! Admin tez orada bog'lanadi.");
@@ -146,7 +145,7 @@ export default function CartPage() {
                   <h3 className="font-medium text-sm truncate">
                     {item.product.nameUz || item.product.name}
                   </h3>
-                  <p className="text-accent font-bold mt-1">{formatUSD(item.product.priceUSD)}</p>
+                  <p className="text-accent font-bold mt-1">{format(item.product.priceKRW)}</p>
 
                   <div className="flex items-center justify-between mt-2">
                     <div className="flex items-center border border-border rounded-lg">
@@ -180,21 +179,14 @@ export default function CartPage() {
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted">Mahsulotlar ({items.length})</span>
-                  <span className="font-medium">{formatUSD(totalUSD)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted">Won da</span>
-                  <span className="font-medium">{formatKRW(totalKRW)}</span>
-                </div>
-                <div className="flex justify-between text-xs text-muted-light">
-                  <span>Kurs</span>
-                  <span>1 USD = {Math.round(exchangeRate).toLocaleString()} KRW</span>
+                  <span className="font-medium">{format(totalKRW)}</span>
                 </div>
                 <hr className="border-border" />
                 <div className="flex justify-between text-lg font-bold">
                   <span>Jami</span>
-                  <span className="text-accent">{formatUSD(totalUSD)}</span>
+                  <span className="text-accent">{format(totalKRW)}</span>
                 </div>
+                <AdminRateBadge variant="compact" />
               </div>
 
               <textarea

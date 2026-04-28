@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Package, ShoppingBag, Users, MessageCircle, DollarSign, Clock, Heart, TrendingUp } from "lucide-react";
-import { formatUSD, formatDate, ORDER_STATUS_MAP } from "@/lib/utils";
+import { formatUSD, formatDate, ORDER_STATUS_MAP, formatOrderTotal } from "@/lib/utils";
 import Link from "next/link";
 
 interface Stats {
@@ -15,6 +15,9 @@ interface Stats {
   recentOrders: Array<{
     id: string;
     totalUSD: number;
+    totalKRW: number;
+    totalUZS: number;
+    currency: string;
     status: string;
     createdAt: string;
     user: { name: string; telegram: string };
@@ -173,7 +176,10 @@ export default function AdminDashboard() {
                   <p className="text-xs text-muted-light">{formatDate(order.createdAt)}</p>
                 </div>
                 <div className="text-right">
-                  <p className="font-bold text-accent">{formatUSD(order.totalUSD)}</p>
+                  <p className="font-bold text-accent">{formatOrderTotal(order)}</p>
+                  <p className="text-[10px] text-muted-light leading-tight">
+                    {order.currency} · ≈ {formatUSD(order.totalUSD)}
+                  </p>
                   <span className={`text-xs px-2 py-0.5 rounded-full ${status.color}`}>{status.label}</span>
                 </div>
               </Link>

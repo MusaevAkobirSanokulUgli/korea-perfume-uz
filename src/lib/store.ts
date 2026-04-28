@@ -51,3 +51,59 @@ export const useLikeStore = create<LikeState>((set) => ({
         : [...s.likedIds, id],
     })),
 }));
+
+export type Currency = "KRW" | "USD" | "UZS";
+
+interface CurrencyState {
+  currency: Currency;
+  hydrated: boolean;
+  setCurrency: (c: Currency) => void;
+  hydrate: () => void;
+}
+
+const CURRENCY_KEY = "kp-currency";
+
+export const useCurrencyStore = create<CurrencyState>((set) => ({
+  currency: "USD",
+  hydrated: false,
+  setCurrency: (currency) => {
+    if (typeof window !== "undefined") {
+      try { localStorage.setItem(CURRENCY_KEY, currency); } catch {}
+    }
+    set({ currency });
+  },
+  hydrate: () => {
+    if (typeof window === "undefined") return;
+    try {
+      const saved = localStorage.getItem(CURRENCY_KEY);
+      if (saved === "KRW" || saved === "USD" || saved === "UZS") {
+        set({ currency: saved, hydrated: true });
+        return;
+      }
+    } catch {}
+    set({ hydrated: true });
+  },
+}));
+
+export interface RateSnapshot {
+  krwUsd: number;
+  krwUzs: number;
+  usdKrw: number;
+  uzsKrw: number;
+  usdUzs: number;
+  updatedAt: string;
+}
+
+interface RatesState {
+  rates: RateSnapshot | null;
+  loading: boolean;
+  setRates: (r: RateSnapshot) => void;
+  setLoading: (b: boolean) => void;
+}
+
+export const useRatesStore = create<RatesState>((set) => ({
+  rates: null,
+  loading: false,
+  setRates: (rates) => set({ rates, loading: false }),
+  setLoading: (loading) => set({ loading }),
+}));

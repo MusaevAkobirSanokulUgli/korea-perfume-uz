@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useCartStore, useAuthStore, useLikeStore } from "@/lib/store";
+import { useCurrency } from "@/lib/useCurrency";
+import CurrencySwitcher from "./CurrencySwitcher";
 import {
   ShoppingCart, User, LogOut, Menu, X, Search,
   MessageCircle, ShoppingBag, Bell,
@@ -19,6 +21,9 @@ export default function Header() {
   const [unreadNotifs, setUnreadNotifs] = useState(0);
 
   const isAdmin = user?.role === "ADMIN";
+
+  // Initialise currency + rates globally
+  useCurrency();
 
   useEffect(() => {
     fetch("/api/auth/me")
@@ -111,7 +116,10 @@ export default function Header() {
             </Link>
           </nav>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="hidden sm:block">
+              <CurrencySwitcher />
+            </div>
             <button onClick={() => setSearchOpen(!searchOpen)} className="p-2 hover:bg-surface rounded-lg">
               <Search size={20} />
             </button>
@@ -215,8 +223,17 @@ export default function Header() {
           <Link href="/products" className="block py-2 text-sm font-medium" onClick={() => setMenuOpen(false)}>
             Barcha mahsulotlar
           </Link>
+          <div className="pt-2 border-t border-border">
+            <p className="text-xs text-muted mb-2">Valyuta:</p>
+            <CurrencySwitcher />
+          </div>
         </div>
       )}
+
+      {/* Mobile-only top bar above (visible on small screens) */}
+      <div className="sm:hidden border-t border-border bg-surface/30 px-4 py-2 flex items-center justify-end">
+        <CurrencySwitcher compact />
+      </div>
     </header>
   );
 }

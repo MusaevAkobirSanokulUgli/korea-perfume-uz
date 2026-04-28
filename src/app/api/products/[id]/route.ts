@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { getExchangeRate, krwToUsd } from "@/lib/exchange-rate";
+import { getRates, krwToUsd, krwToUzs } from "@/lib/exchange-rate";
 import { getSession } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
@@ -9,12 +9,12 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const [product, rate] = await Promise.all([
+  const [product, rates] = await Promise.all([
     prisma.product.findUnique({
       where: { id },
       include: { category: true },
     }),
-    getExchangeRate(),
+    getRates(),
   ]);
 
   if (!product) {
@@ -23,9 +23,11 @@ export async function GET(
 
   return Response.json({
     ...product,
-    priceUSD: krwToUsd(product.priceKRW, rate),
+    priceUSD: krwToUsd(product.priceKRW, rates.usdKrw),
+    priceUZS: krwToUzs(product.priceKRW, rates.uzsKrw),
     images: JSON.parse(product.images),
-    exchangeRate: rate,
+    exchangeRate: rates.usdKrw,
+    rates,
   });
 }
 

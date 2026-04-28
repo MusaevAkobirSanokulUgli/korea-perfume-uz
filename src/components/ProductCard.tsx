@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useState } from "react";
 import { ShoppingCart, Heart, ChevronLeft, ChevronRight } from "lucide-react";
-import { formatUSD, formatKRW } from "@/lib/utils";
 import { useCartStore, useAuthStore, useLikeStore } from "@/lib/store";
+import { useCurrency } from "@/lib/useCurrency";
 import toast from "react-hot-toast";
 
 interface Product {
@@ -12,7 +12,8 @@ interface Product {
   name: string;
   nameUz: string;
   priceKRW: number;
-  priceUSD: number;
+  priceUSD?: number;
+  priceUZS?: number;
   image: string;
   images?: string[];
   brand: string;
@@ -26,6 +27,7 @@ export default function ProductCard({ product }: { product: Product }) {
   const { increment } = useCartStore();
   const { user } = useAuthStore();
   const { likedIds, toggleLike } = useLikeStore();
+  const { format } = useCurrency();
   const isLiked = likedIds.includes(product.id);
   const isAdmin = user?.role === "ADMIN";
 
@@ -177,8 +179,7 @@ export default function ProductCard({ product }: { product: Product }) {
 
           <div className="flex items-end justify-between mt-2">
             <div>
-              <p className="text-lg font-bold text-accent">{formatUSD(product.priceUSD)}</p>
-              <p className="text-xs text-muted">{formatKRW(product.priceKRW)}</p>
+              <p className="text-lg font-bold text-accent">{format(product.priceKRW)}</p>
             </div>
             {product.inStock && !isAdmin && (
               <button

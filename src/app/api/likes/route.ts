@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { getExchangeRate, krwToUsd } from "@/lib/exchange-rate";
+import { getRates, krwToUsd, krwToUzs } from "@/lib/exchange-rate";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +10,7 @@ export async function GET() {
     return Response.json({ likes: [], likedIds: [] });
   }
 
-  const [likes, rate] = await Promise.all([
+  const [likes, rates] = await Promise.all([
     prisma.like.findMany({
       where: { userId: session.id },
       include: {
@@ -25,20 +25,21 @@ export async function GET() {
       },
       orderBy: { createdAt: "desc" },
     }),
-    getExchangeRate(),
+    getRates(),
   ]);
 
   const enriched = likes.map((l) => ({
     ...l,
     product: {
       ...l.product,
-      priceUSD: krwToUsd(l.product.priceKRW, rate),
+      priceUSD: krwToUsd(l.product.priceKRW, rates.usdKrw),
+      priceUZS: krwToUzs(l.product.priceKRW, rates.uzsKrw),
     },
   }));
 
   const likedIds = likes.map((l) => l.productId);
 
-  return Response.json({ likes: enriched, likedIds });
+  return Response.json({ likes: enriched, likedIds, rates });
 }
 
 export async function POST(request: Request) {

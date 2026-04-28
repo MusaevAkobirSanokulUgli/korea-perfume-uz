@@ -3,10 +3,11 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ShoppingCart, ArrowLeft, Minus, Plus, Check, Heart, ChevronLeft, ChevronRight } from "lucide-react";
-import { formatUSD, formatKRW } from "@/lib/utils";
 import { useCartStore, useAuthStore, useLikeStore } from "@/lib/store";
+import { useCurrency } from "@/lib/useCurrency";
 import toast from "react-hot-toast";
 import ProductCard from "@/components/ProductCard";
+import AdminRateBadge from "@/components/AdminRateBadge";
 
 interface Product {
   id: string;
@@ -15,7 +16,8 @@ interface Product {
   description: string;
   descriptionUz: string;
   priceKRW: number;
-  priceUSD: number;
+  priceUSD?: number;
+  priceUZS?: number;
   image: string;
   images: string[];
   brand: string;
@@ -47,6 +49,7 @@ export default function ProductDetailPage() {
   const { increment } = useCartStore();
   const { user } = useAuthStore();
   const { likedIds, toggleLike } = useLikeStore();
+  const { format } = useCurrency();
   const [product, setProduct] = useState<Product | null>(null);
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
@@ -309,11 +312,11 @@ export default function ProductDetailPage() {
 
           <div className="bg-surface rounded-2xl p-6 mb-6">
             <p className="text-3xl font-bold text-accent mb-1">
-              {formatUSD(product.priceUSD)}
+              {format(product.priceKRW)}
             </p>
-            <p className="text-sm text-muted">
-              {formatKRW(product.priceKRW)} • Kurs: 1 USD = {Math.round(product.exchangeRate).toLocaleString()} KRW
-            </p>
+            <div className="mt-2">
+              <AdminRateBadge variant="compact" />
+            </div>
           </div>
 
           <div className="flex items-center gap-2 mb-4">

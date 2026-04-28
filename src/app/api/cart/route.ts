@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { getExchangeRate, krwToUsd } from "@/lib/exchange-rate";
+import { getRates, krwToUsd, krwToUzs } from "@/lib/exchange-rate";
 
 export const dynamic = "force-dynamic";
 
@@ -10,20 +10,21 @@ export async function GET() {
     return Response.json({ error: "Tizimga kiring" }, { status: 401 });
   }
 
-  const [items, rate] = await Promise.all([
+  const [items, rates] = await Promise.all([
     prisma.cartItem.findMany({
       where: { userId: session.id },
       include: { product: { include: { category: true } } },
       orderBy: { createdAt: "desc" },
     }),
-    getExchangeRate(),
+    getRates(),
   ]);
 
-  const itemsWithUsd = items.map((item) => ({
+  const itemsWithPrices = items.map((item) => ({
     ...item,
     product: {
       ...item.product,
-      priceUSD: krwToUsd(item.product.priceKRW, rate),
+      priceUSD: krwToUsd(item.product.priceKRW, rates.usdKrw),
+      priceUZS: krwToUzs(item.product.priceKRW, rates.uzsKrw),
       images: JSON.parse(item.product.images),
     },
   }));
@@ -31,10 +32,12 @@ export async function GET() {
   const totalKRW = items.reduce((sum, i) => sum + i.product.priceKRW * i.quantity, 0);
 
   return Response.json({
-    items: itemsWithUsd,
+    items: itemsWithPrices,
     totalKRW,
-    totalUSD: krwToUsd(totalKRW, rate),
-    exchangeRate: rate,
+    totalUSD: krwToUsd(totalKRW, rates.usdKrw),
+    totalUZS: krwToUzs(totalKRW, rates.uzsKrw),
+    exchangeRate: rates.usdKrw,
+    rates,
     count: items.reduce((sum, i) => sum + i.quantity, 0),
   });
 }

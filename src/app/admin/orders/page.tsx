@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { formatUSD, formatKRW, formatDate, ORDER_STATUS_MAP } from "@/lib/utils";
-import { ChevronDown, ChevronUp, Trash2, Download, Filter, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { formatUSD, formatKRW, formatUZS, formatDate, ORDER_STATUS_MAP, formatOrderTotal, formatItemPrice } from "@/lib/utils";
+import { ChevronDown, ChevronUp, Trash2, Download, Filter, Search, ChevronLeft, ChevronRight, Coins } from "lucide-react";
 import toast from "react-hot-toast";
 
 interface OrderItem {
@@ -10,6 +10,7 @@ interface OrderItem {
   quantity: number;
   priceUSD: number;
   priceKRW: number;
+  priceUZS: number;
   product: { id: string; name: string; image: string };
 }
 
@@ -17,7 +18,10 @@ interface Order {
   id: string;
   totalUSD: number;
   totalKRW: number;
+  totalUZS: number;
   exchangeRate: number;
+  uzsKrwRate: number;
+  currency: string;
   status: string;
   note: string;
   createdAt: string;
@@ -27,6 +31,12 @@ interface Order {
     telegram: string; address: string; city: string; district: string;
   };
 }
+
+const CURRENCY_BADGE: Record<string, { label: string; tone: string }> = {
+  KRW: { label: "Won (KRW)", tone: "bg-blue-100 text-blue-700 border-blue-200" },
+  USD: { label: "Dollar (USD)", tone: "bg-green-100 text-green-700 border-green-200" },
+  UZS: { label: "So'm (UZS)", tone: "bg-amber-100 text-amber-800 border-amber-200" },
+};
 
 const STATUSES = ["PENDING", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"];
 
@@ -224,21 +234,34 @@ export default function AdminOrders() {
                 <div className="flex items-center">
                   <button
                     onClick={() => setExpanded(isExpanded ? null : order.id)}
-                    className="flex-1 p-4 flex items-center justify-between hover:bg-surface/50 transition text-left"
+                    className="flex-1 p-4 flex items-center justify-between hover:bg-surface/50 transition text-left gap-3"
                   >
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-3 mb-1">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <span className="text-sm font-bold">#{order.id.slice(-6).toUpperCase()}</span>
                         <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${status.color}`}>
                           {status.label}
+                        </span>
+                        <span className={`text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full font-semibold border ${(CURRENCY_BADGE[order.currency] || CURRENCY_BADGE.USD).tone}`}>
+                          {(CURRENCY_BADGE[order.currency] || CURRENCY_BADGE.USD).label}
                         </span>
                       </div>
                       <p className="text-sm">{order.user.name} &bull; <span className="text-muted">{order.user.telegram}</span></p>
                       <p className="text-xs text-muted">{formatDate(order.createdAt)}</p>
                     </div>
-                    <div className="flex items-center gap-3 shrink-0">
-                      <span className="text-lg font-bold text-accent">{formatUSD(order.totalUSD)}</span>
-                      {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                    <div className="flex flex-col items-end shrink-0 min-w-[140px]">
+                      <span className="text-lg font-bold text-accent">{formatOrderTotal(order)}</span>
+                      <span className="text-[11px] text-muted leading-tight">
+                        {order.currency !== "USD" && <>≈ {formatUSD(order.totalUSD)}</>}
+                        {order.currency === "USD" && <>≈ {formatKRW(order.totalKRW)}</>}
+                      </span>
+                      <span className="text-[11px] text-muted-light leading-tight">
+                        {order.currency !== "KRW" && order.currency !== "USD" && <>· {formatKRW(order.totalKRW)}</>}
+                        {order.currency === "KRW" && <>≈ {formatUSD(order.totalUSD)}</>}
+                      </span>
+                      {isExpanded
+                        ? <ChevronUp size={16} className="mt-1" />
+                        : <ChevronDown size={16} className="mt-1" />}
                     </div>
                   </button>
                   <button
@@ -289,6 +312,12 @@ export default function AdminOrders() {
 
                     {/* Items */}
                     <div className="p-4">
+                      <div className="mb-3 flex items-center gap-2">
+                        <Coins size={14} className="text-accent" />
+                        <span className="text-xs font-semibold uppercase">
+                          Mijoz tanlagan valyuta: <span className={`px-2 py-0.5 rounded-full border ${(CURRENCY_BADGE[order.currency] || CURRENCY_BADGE.USD).tone}`}>{(CURRENCY_BADGE[order.currency] || CURRENCY_BADGE.USD).label}</span>
+                        </span>
+                      </div>
                       <h4 className="text-xs font-semibold text-muted mb-3 uppercase">Mahsulotlar</h4>
                       <div className="space-y-3">
                         {order.items.map((item) => (
@@ -296,28 +325,51 @@ export default function AdminOrders() {
                             <img src={item.product.image} alt="" className="w-12 h-12 rounded-lg object-cover bg-surface" />
                             <div className="flex-1">
                               <p className="text-sm font-medium">{item.product.name}</p>
-                              <p className="text-xs text-muted">{item.quantity} dona</p>
+                              <p className="text-xs text-muted">{item.quantity} dona × {formatItemPrice(item, order.currency)}</p>
                             </div>
                             <div className="text-right">
-                              <p className="text-sm font-bold">{formatUSD(item.priceUSD * item.quantity)}</p>
-                              <p className="text-xs text-muted">{formatKRW(item.priceKRW * item.quantity)}</p>
+                              <p className="text-sm font-bold text-accent">{formatItemPrice(item, order.currency, false)}</p>
+                              <p className="text-[11px] text-muted">{formatKRW(item.priceKRW * item.quantity)} · {formatUSD(item.priceUSD * item.quantity)}</p>
+                              {(item.priceUZS || 0) > 0 && order.currency !== "UZS" && (
+                                <p className="text-[11px] text-muted-light">{formatUZS(item.priceUZS * item.quantity)}</p>
+                              )}
                             </div>
                           </div>
                         ))}
                       </div>
 
-                      <div className="bg-surface rounded-xl p-3 mt-4 text-sm space-y-1">
-                        <div className="flex justify-between">
-                          <span className="text-muted">Jami (USD)</span>
-                          <span className="font-bold text-accent">{formatUSD(order.totalUSD)}</span>
+                      <div className="bg-surface rounded-xl p-4 mt-4 text-sm space-y-2">
+                        <div className="flex justify-between items-center pb-2 border-b border-border">
+                          <span className="text-muted text-xs uppercase font-semibold">
+                            Mijoz to&apos;lashi kerak ({order.currency})
+                          </span>
+                          <span className="font-bold text-accent text-base">{formatOrderTotal(order)}</span>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted">Jami (KRW)</span>
-                          <span>{formatKRW(order.totalKRW)}</span>
+                        <div className="grid grid-cols-3 gap-2 text-xs pt-1">
+                          <div className={order.currency === "KRW" ? "opacity-50" : ""}>
+                            <p className="text-muted-light text-[10px] uppercase">Won da</p>
+                            <p className="font-semibold">{formatKRW(order.totalKRW)}</p>
+                          </div>
+                          <div className={order.currency === "USD" ? "opacity-50" : ""}>
+                            <p className="text-muted-light text-[10px] uppercase">Dollar da</p>
+                            <p className="font-semibold">{formatUSD(order.totalUSD)}</p>
+                          </div>
+                          <div className={order.currency === "UZS" ? "opacity-50" : ""}>
+                            <p className="text-muted-light text-[10px] uppercase">So&apos;m da</p>
+                            <p className="font-semibold">{(order.totalUZS || 0) > 0 ? formatUZS(order.totalUZS) : "—"}</p>
+                          </div>
                         </div>
-                        <div className="flex justify-between text-xs">
-                          <span className="text-muted">Buyurtma paytidagi kurs</span>
-                          <span>1 USD = {Math.round(order.exchangeRate).toLocaleString()} KRW</span>
+                        <div className="pt-2 border-t border-border space-y-0.5">
+                          <p className="text-[11px] text-muted flex justify-between">
+                            <span>Buyurtma paytidagi USD/KRW</span>
+                            <span>1 USD = {Math.round(order.exchangeRate).toLocaleString()} KRW</span>
+                          </p>
+                          {(order.uzsKrwRate || 0) > 0 && (
+                            <p className="text-[11px] text-muted flex justify-between">
+                              <span>Buyurtma paytidagi KRW/UZS</span>
+                              <span>1 KRW = {order.uzsKrwRate.toFixed(2)} so&apos;m</span>
+                            </p>
+                          )}
                         </div>
                       </div>
 

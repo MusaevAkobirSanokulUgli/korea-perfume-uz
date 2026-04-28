@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { getExchangeRate, krwToUsd } from "@/lib/exchange-rate";
+import { getRates, krwToUsd, krwToUzs } from "@/lib/exchange-rate";
 
 export const dynamic = "force-dynamic";
 
@@ -55,23 +55,24 @@ export async function GET() {
       productIds.push(...newest.map((n) => n.id));
     }
 
-    const [products, rate] = await Promise.all([
+    const [products, rates] = await Promise.all([
       prisma.product.findMany({
         where: { id: { in: productIds } },
         include: { category: true },
       }),
-      getExchangeRate(),
+      getRates(),
     ]);
 
     const sorted = products
       .map((p) => ({
         ...p,
-        priceUSD: krwToUsd(p.priceKRW, rate),
+        priceUSD: krwToUsd(p.priceKRW, rates.usdKrw),
+        priceUZS: krwToUzs(p.priceKRW, rates.uzsKrw),
         images: JSON.parse(p.images),
       }))
       .sort((a, b) => (salesMap[b.id] || 0) - (salesMap[a.id] || 0));
 
-    return Response.json({ products: sorted, exchangeRate: rate });
+    return Response.json({ products: sorted, exchangeRate: rates.usdKrw, rates });
   } catch (error) {
     console.error("Bestsellers error:", error);
     return Response.json({ products: [], exchangeRate: 0 }, { status: 500 });

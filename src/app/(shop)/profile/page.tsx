@@ -4,7 +4,8 @@ import { Suspense, useEffect, useState, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuthStore, useLikeStore } from "@/lib/store";
-import { formatUSD, formatKRW, formatDate, ORDER_STATUS_MAP, UZ_CITIES } from "@/lib/utils";
+import { useCurrency } from "@/lib/useCurrency";
+import { formatDate, ORDER_STATUS_MAP, UZ_CITIES, formatOrderTotal, formatItemPrice } from "@/lib/utils";
 import {
   Package, ChevronDown, ChevronUp, Bell, BellOff, Heart,
   CheckCircle2, Clock, Truck, XCircle, Loader2,
@@ -18,6 +19,7 @@ interface OrderItem {
   quantity: number;
   priceUSD: number;
   priceKRW: number;
+  priceUZS: number;
   product: { id: string; name: string; image: string };
 }
 
@@ -25,7 +27,10 @@ interface Order {
   id: string;
   totalUSD: number;
   totalKRW: number;
+  totalUZS: number;
   exchangeRate: number;
+  uzsKrwRate: number;
+  currency: string;
   status: string;
   note: string;
   createdAt: string;
@@ -56,7 +61,8 @@ interface LikedProduct {
   id: string;
   product: {
     id: string; name: string; nameUz: string; image: string;
-    brand: string; volume: string; priceKRW: number; priceUSD: number;
+    brand: string; volume: string; priceKRW: number;
+    priceUSD?: number; priceUZS?: number;
     inStock: boolean; featured: boolean;
     category: { name: string; nameUz: string };
   };
@@ -85,6 +91,7 @@ function ProfileContent() {
   const searchParams = useSearchParams();
   const { user, checked, setUser, logout } = useAuthStore();
   const { likedIds, toggleLike } = useLikeStore();
+  const { format } = useCurrency();
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -359,7 +366,7 @@ function ProfileContent() {
                       </div>
                       <div className="flex items-center gap-3">
                         <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${status.color}`}>{status.label}</span>
-                        <span className="font-bold text-accent">{formatUSD(order.totalUSD)}</span>
+                        <span className="font-bold text-accent">{formatOrderTotal(order)}</span>
                         {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                       </div>
                     </button>
@@ -390,19 +397,16 @@ function ProfileContent() {
                                 <img src={item.product.image} alt="" className="w-12 h-12 rounded-lg object-cover bg-surface" />
                                 <div className="flex-1">
                                   <p className="text-sm font-medium">{item.product.name}</p>
-                                  <p className="text-xs text-muted">{item.quantity} x {formatUSD(item.priceUSD)}</p>
+                                  <p className="text-xs text-muted">{item.quantity} x {formatItemPrice(item, order.currency)}</p>
                                 </div>
                                 <div className="text-right">
-                                  <p className="text-sm font-medium">{formatUSD(item.priceUSD * item.quantity)}</p>
-                                  <p className="text-xs text-muted">{formatKRW(item.priceKRW * item.quantity)}</p>
+                                  <p className="text-sm font-medium">{formatItemPrice(item, order.currency, false)}</p>
                                 </div>
                               </div>
                             ))}
                           </div>
                           <div className="bg-surface rounded-xl p-3 text-sm space-y-1">
-                            <div className="flex justify-between"><span className="text-muted">Jami (USD)</span><span className="font-bold">{formatUSD(order.totalUSD)}</span></div>
-                            <div className="flex justify-between"><span className="text-muted">Jami (KRW)</span><span>{formatKRW(order.totalKRW)}</span></div>
-                            <div className="flex justify-between"><span className="text-muted">Kurs</span><span>1 USD = {Math.round(order.exchangeRate).toLocaleString()} KRW</span></div>
+                            <div className="flex justify-between"><span className="text-muted">Jami</span><span className="font-bold">{formatOrderTotal(order)}</span></div>
                           </div>
                           {order.note && <p className="mt-3 text-sm text-muted"><span className="font-medium">Izoh:</span> {order.note}</p>}
                         </div>
@@ -458,8 +462,7 @@ function ProfileContent() {
                     <div className="p-3">
                       <p className="text-xs text-muted">{like.product.brand}</p>
                       <h3 className="font-medium text-sm line-clamp-2 min-h-[2.5rem]">{like.product.nameUz || like.product.name}</h3>
-                      <p className="text-lg font-bold text-accent mt-1">{formatUSD(like.product.priceUSD)}</p>
-                      <p className="text-xs text-muted">{formatKRW(like.product.priceKRW)}</p>
+                      <p className="text-lg font-bold text-accent mt-1">{format(like.product.priceKRW)}</p>
                     </div>
                   </Link>
                 </div>

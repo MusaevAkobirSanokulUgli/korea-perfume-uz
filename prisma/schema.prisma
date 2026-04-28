@@ -78,7 +78,10 @@ model Order {
   items        OrderItem[]
   totalUSD     Float
   totalKRW     Float
+  totalUZS     Float       @default(0)
   exchangeRate Float
+  uzsKrwRate   Float       @default(0)
+  currency     String      @default("USD")
   status       String      @default("PENDING")
   note         String      @default("")
   createdAt    DateTime    @default(now())
@@ -94,6 +97,7 @@ model OrderItem {
   quantity  Int
   priceUSD  Float
   priceKRW  Float
+  priceUZS  Float    @default(0)
 }
 
 model Message {

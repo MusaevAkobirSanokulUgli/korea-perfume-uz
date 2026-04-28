@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import ProductCard from "@/components/ProductCard";
 import { Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { useCurrency } from "@/lib/useCurrency";
+import AdminRateBadge from "@/components/AdminRateBadge";
 
 interface Category {
   id: string;
@@ -16,7 +18,8 @@ interface Product {
   name: string;
   nameUz: string;
   priceKRW: number;
-  priceUSD: number;
+  priceUSD?: number;
+  priceUZS?: number;
   image: string;
   images?: string[];
   brand: string;
@@ -33,15 +36,14 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [exchangeRate, setExchangeRate] = useState(0);
   const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
 
+  useCurrency();
   const safeJson = (r: Response) => (r.ok ? r.json() : Promise.resolve(null));
 
   useEffect(() => {
     fetch("/api/categories").then(safeJson).then((d) => { if (Array.isArray(d)) setCategories(d); }).catch(() => {});
-    fetch("/api/exchange-rate").then(safeJson).then((d) => { if (d?.rate) setExchangeRate(d.rate); }).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -78,11 +80,9 @@ export default function ProductsPage() {
     <div className="max-w-7xl mx-auto px-4 py-8">
       <div className="mb-6">
         <h2 className="text-2xl font-bold">Barcha mahsulotlar</h2>
-        {exchangeRate > 0 && (
-          <p className="text-sm text-muted mt-1">
-            Kurs: 1 USD = {Math.round(exchangeRate).toLocaleString()} KRW
-          </p>
-        )}
+        <div className="mt-2">
+          <AdminRateBadge />
+        </div>
       </div>
 
       {/* Search */}

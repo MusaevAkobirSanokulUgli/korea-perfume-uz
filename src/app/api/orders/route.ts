@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { getExchangeRate, krwToUsd } from "@/lib/exchange-rate";
+import { getRates, krwToUsd, krwToUzs } from "@/lib/exchange-rate";
 
 export const dynamic = "force-dynamic";
 
@@ -49,9 +49,13 @@ export async function POST(request: Request) {
   }
 
   let note = "";
+  let currency: "KRW" | "USD" | "UZS" = "USD";
   try {
     const body = await request.json();
     note = body.note || "";
+    if (body.currency === "KRW" || body.currency === "USD" || body.currency === "UZS") {
+      currency = body.currency;
+    }
   } catch {
     // empty body is fine
   }
@@ -65,26 +69,31 @@ export async function POST(request: Request) {
     return Response.json({ error: "Savat bo'sh" }, { status: 400 });
   }
 
-  const rate = await getExchangeRate();
+  const rates = await getRates();
 
   const totalKRW = cartItems.reduce(
     (sum, item) => sum + item.product.priceKRW * item.quantity, 0
   );
-  const totalUSD = krwToUsd(totalKRW, rate);
+  const totalUSD = krwToUsd(totalKRW, rates.usdKrw);
+  const totalUZS = krwToUzs(totalKRW, rates.uzsKrw);
 
   const order = await prisma.order.create({
     data: {
       userId: session.id,
       totalUSD,
       totalKRW,
-      exchangeRate: rate,
+      totalUZS,
+      exchangeRate: rates.usdKrw,
+      uzsKrwRate: rates.uzsKrw,
+      currency,
       note,
       items: {
         create: cartItems.map((item) => ({
           productId: item.productId,
           quantity: item.quantity,
           priceKRW: item.product.priceKRW,
-          priceUSD: krwToUsd(item.product.priceKRW, rate),
+          priceUSD: krwToUsd(item.product.priceKRW, rates.usdKrw),
+          priceUZS: krwToUzs(item.product.priceKRW, rates.uzsKrw),
         })),
       },
     },

@@ -1,16 +1,18 @@
-import { prisma } from "@/lib/prisma";
-import { getExchangeRate } from "@/lib/exchange-rate";
+import { getRates } from "@/lib/exchange-rate";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const rate = await getExchangeRate();
-  const latest = await prisma.exchangeRate.findFirst({
-    orderBy: { createdAt: "desc" },
-  });
+  const rates = await getRates();
   return Response.json({
-    rate,
-    source: latest?.source || "unknown",
-    updatedAt: latest?.createdAt?.toISOString() || new Date().toISOString(),
+    rate: rates.usdKrw,
+    krwUsd: rates.krwUsd,
+    krwUzs: rates.krwUzs,
+    usdKrw: rates.usdKrw,
+    uzsKrw: rates.uzsKrw,
+    usdUzs: rates.usdUzs,
+    sourceUsd: rates.sourceUsd,
+    sourceUzs: rates.sourceUzs,
+    updatedAt: rates.updatedAt,
   });
 }
