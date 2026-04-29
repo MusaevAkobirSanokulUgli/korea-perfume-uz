@@ -38,6 +38,7 @@ export async function POST(request: Request) {
 
     return Response.json({
       user: { id: user.id, email: user.email, name: user.name, role: user.role },
+      token,
     });
   } catch (error) {
     console.error("Login error:", error);
