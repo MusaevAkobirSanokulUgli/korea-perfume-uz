@@ -1,5 +1,5 @@
 import { SignJWT, jwtVerify } from "jose";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import bcrypt from "bcryptjs";
 
 const secret = new TextEncoder().encode(
@@ -43,10 +43,19 @@ export async function verifyToken(
 }
 
 export async function getSession(): Promise<SessionUser | null> {
+  // 1. Try cookie (web app)
   const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
-  if (!token) return null;
-  return verifyToken(token);
+  const cookieToken = cookieStore.get("token")?.value;
+  if (cookieToken) return verifyToken(cookieToken);
+
+  // 2. Try Authorization header (mobile app)
+  const headerStore = await headers();
+  const authHeader = headerStore.get("authorization");
+  if (authHeader?.startsWith("Bearer ")) {
+    return verifyToken(authHeader.slice(7));
+  }
+
+  return null;
 }
 
 export async function requireAuth(): Promise<SessionUser> {
